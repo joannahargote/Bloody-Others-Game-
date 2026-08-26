@@ -2,6 +2,7 @@
   var BO = window.BloodyOthers = window.BloodyOthers || {};
   var state = BO.state.loadGame();
   var settings = BO.state.loadSettings();
+  var unlockedEndings = BO.state.loadUnlockedEndings();
   var combatSession = null;
   var deathSceneCheckpoint = state.currentScene || "scene01";
   var sceneCheckpointState = BO.state.clone(state);
@@ -14,6 +15,7 @@
     continueButton: document.getElementById("continueButton"),
     newGameButton: document.getElementById("newGameButton"),
     loadButton: document.getElementById("loadButton"),
+    endingsButton: document.getElementById("endingsButton"),
     settingsButton: document.getElementById("settingsButton"),
     menuHint: document.getElementById("menuHint"),
     menuFooterLeft: document.getElementById("menuFooterLeft"),
@@ -45,6 +47,13 @@
     deathCauseText: document.getElementById("deathCauseText"),
     restartSceneButton: document.getElementById("restartSceneButton"),
     restartStoryButton: document.getElementById("restartStoryButton"),
+    endingsDialog: document.getElementById("endingsDialog"),
+    closeEndingsButton: document.getElementById("closeEndingsButton"),
+    endingsProgressText: document.getElementById("endingsProgressText"),
+    endingsList: document.getElementById("endingsList"),
+    endingPreviewStatus: document.getElementById("endingPreviewStatus"),
+    endingPreviewTitle: document.getElementById("endingPreviewTitle"),
+    endingPreviewText: document.getElementById("endingPreviewText"),
     debugPanel: document.getElementById("debugPanel"),
     debugItemsButton: document.getElementById("debugItemsButton"),
     debugScenesButton: document.getElementById("debugScenesButton"),
@@ -145,8 +154,10 @@
 
   function updateMenuState(message) {
     var hasSave = BO.state.hasSave();
+    var unlockedCount = unlockedEndings.length;
     refs.continueButton.disabled = !hasSave;
     refs.loadButton.disabled = !hasSave;
+    refs.endingsButton.textContent = "Endings (" + unlockedCount + "/7)";
     refs.menuFooterLeft.textContent = BO.secretEnding.menuFooterLeft;
     refs.menuFooterRight.textContent = BO.state.hasSecretBirthdayUnlocked() ? BO.secretEnding.menuFooterRightUnlocked : BO.secretEnding.menuFooterRightDefault;
     refs.menuHint.textContent = message || "";
@@ -359,6 +370,83 @@
 
   function setEventText(text) {
     refs.eventText.textContent = text || "";
+  }
+
+  function getEndingOrdinal(endingId) {
+    var index = BO.endings.ordered.findIndex(function (ending) {
+      return ending.id === endingId;
+    });
+    return index === -1 ? null : index + 1;
+  }
+
+  function isEndingUnlocked(endingId) {
+    return unlockedEndings.indexOf(endingId) !== -1;
+  }
+
+  function renderEndingPreview(endingId) {
+    var ending = BO.endings.getById(endingId);
+    var unlocked = ending ? isEndingUnlocked(endingId) : false;
+    var number = getEndingOrdinal(endingId);
+
+    refs.endingPreviewText.innerHTML = "";
+
+    if (!ending || !number) {
+      refs.endingPreviewStatus.textContent = "Select an ending.";
+      refs.endingPreviewTitle.textContent = "The road splits seven ways.";
+      appendSceneParagraph("Unlocked endings appear here so players can revisit their final message.", "", refs.endingPreviewText);
+      return;
+    }
+
+    if (!unlocked) {
+      refs.endingPreviewStatus.textContent = "Ending " + number + " / 7 locked";
+      refs.endingPreviewTitle.textContent = "Ending " + number;
+      appendSceneParagraph("Keep playing to unlock this ending and reveal its final page.", "", refs.endingPreviewText);
+      return;
+    }
+
+    refs.endingPreviewStatus.textContent = "Ending " + number + " / 7 unlocked";
+    refs.endingPreviewTitle.textContent = ending.title;
+    ending.text.forEach(function (line) {
+      appendSceneParagraph(line, "", refs.endingPreviewText);
+    });
+  }
+
+  function renderEndingsGallery(selectedEndingId) {
+    var previewId = selectedEndingId || unlockedEndings[0] || (BO.endings.ordered[0] && BO.endings.ordered[0].id);
+
+    refs.endingsProgressText.textContent = unlockedEndings.length + " of 7 unlocked";
+    refs.endingsList.innerHTML = "";
+
+    BO.endings.ordered.forEach(function (ending, index) {
+      var unlocked = isEndingUnlocked(ending.id);
+      var button = document.createElement("button");
+      var title = document.createElement("span");
+      var meta = document.createElement("span");
+
+      button.type = "button";
+      button.className = "ending-entry " + (unlocked ? "unlocked" : "locked");
+      button.setAttribute("aria-pressed", previewId === ending.id ? "true" : "false");
+      button.addEventListener("click", function () {
+        renderEndingsGallery(ending.id);
+      });
+
+      title.className = "ending-entry-title";
+      title.textContent = "Ending " + (index + 1) + " - " + (unlocked ? ending.title : "Locked");
+
+      meta.className = "ending-entry-meta";
+      meta.textContent = unlocked ? "Unlocked" : "Not yet found";
+
+      button.appendChild(title);
+      button.appendChild(meta);
+      refs.endingsList.appendChild(button);
+    });
+
+    renderEndingPreview(previewId);
+  }
+
+  function openEndingsDialog() {
+    renderEndingsGallery("");
+    refs.endingsDialog.showModal();
   }
 
   function updateSceneArt(sceneId) {
@@ -702,6 +790,7 @@
   function renderEnding() {
     var ending = BO.endings.determineEnding(state);
     ensureToken(state.endingsSeen, ending.id);
+    unlockedEndings = BO.state.unlockEnding(ending.id);
     state.currentScene = "scene42";
     document.body.classList.add("late-game-active", "final-room-active");
     if (ending.id === "ending07") {
@@ -890,6 +979,7 @@
       startNewGame(false);
     });
     refs.settingsButton.addEventListener("click", openSettings);
+    refs.endingsButton.addEventListener("click", openEndingsDialog);
     refs.openSettingsButton.addEventListener("click", openSettings);
     refs.menuButton.addEventListener("click", closeToMenu);
     refs.saveButton.addEventListener("click", function () {
@@ -915,6 +1005,7 @@
         return;
       }
       BO.state.resetGame();
+      unlockedEndings = [];
       state = BO.state.createInitialState();
       sceneCheckpointState = BO.state.clone(state);
       refreshHud();
@@ -924,6 +1015,9 @@
     });
     refs.restartSceneButton.addEventListener("click", restartCurrentScene);
     refs.restartStoryButton.addEventListener("click", restartStory);
+    refs.closeEndingsButton.addEventListener("click", function () {
+      refs.endingsDialog.close();
+    });
   }
 
   applySettings();
