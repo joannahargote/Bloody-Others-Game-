@@ -295,6 +295,24 @@
     createSession: createSession,
     getAction: getAction,
     perform: function (action, state, session) {
+      var configuredAction = getAction(session, action);
+
+      // The UI normally prevents unavailable actions, but combat data can also
+      // be reached from saved games or debug tools. Never charge the player a
+      // turn for an action they cannot actually use.
+      if (!configuredAction) {
+        addLog(session, "That combat action is unavailable.");
+        return;
+      }
+      if (configuredAction.requiresItem && state.inventory.indexOf(configuredAction.requiresItem) === -1) {
+        addLog(session, "You do not have the item needed for that action.");
+        return;
+      }
+      if (configuredAction.requiresAmmo && state.ammo < configuredAction.requiresAmmo) {
+        addLog(session, "You do not have enough ammunition.");
+        return;
+      }
+
       applyBleedingTick(state, session);
       if (state.health <= 0) {
         setDeathCause(state, "You bled out before the fight ended.");

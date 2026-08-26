@@ -43,7 +43,9 @@
     return {
       textSpeed: "normal",
       reducedMotion: false,
-      skipAnimations: false
+      skipAnimations: false,
+      soundEnabled: true,
+      hapticsEnabled: true
     };
   }
 

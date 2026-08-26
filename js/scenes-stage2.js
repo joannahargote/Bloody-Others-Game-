@@ -135,7 +135,7 @@
               { id: "defend", label: "Defend Petra" },
               { id: "special", label: "Rescue Egon" },
               { id: "run", label: "Flee Through Back Hall" },
-              { id: "item", label: "Use Medical Kit" }
+              { id: "item", label: "Use Medical Kit", requiresItem: "Medical Kit" }
             ],
             specialAction: {
               successRate: 62,

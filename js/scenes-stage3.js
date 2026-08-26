@@ -80,7 +80,7 @@
               { id: "defend", label: "Block" },
               { id: "special", label: "Use Environment" },
               { id: "run", label: "Run" },
-              { id: "item", label: "Use Medical Kit" }
+              { id: "item", label: "Use Medical Kit", requiresItem: "Medical Kit" }
             ],
             specialAction: {
               successRate: 58,

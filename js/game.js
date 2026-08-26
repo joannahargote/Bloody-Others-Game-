@@ -7,6 +7,7 @@
   var deathSceneCheckpoint = state.currentScene || "scene01";
   var sceneCheckpointState = BO.state.clone(state);
   var sceneTimers = [];
+  var pendingSceneBridge = "";
 
   var refs = {
     menuScreen: document.getElementById("menuScreen"),
@@ -41,6 +42,8 @@
     textSpeedSelect: document.getElementById("textSpeedSelect"),
     reducedMotionToggle: document.getElementById("reducedMotionToggle"),
     skipAnimationsToggle: document.getElementById("skipAnimationsToggle"),
+    soundEnabledToggle: document.getElementById("soundEnabledToggle"),
+    hapticsEnabledToggle: document.getElementById("hapticsEnabledToggle"),
     applySettingsButton: document.getElementById("applySettingsButton"),
     resetSaveButton: document.getElementById("resetSaveButton"),
     deathDialog: document.getElementById("deathDialog"),
@@ -168,6 +171,11 @@
     refs.textSpeedSelect.value = settings.textSpeed;
     refs.reducedMotionToggle.checked = settings.reducedMotion;
     refs.skipAnimationsToggle.checked = settings.skipAnimations;
+    refs.soundEnabledToggle.checked = settings.soundEnabled !== false;
+    refs.hapticsEnabledToggle.checked = settings.hapticsEnabled !== false;
+    if (BO.feedback) {
+      BO.feedback.configure(settings);
+    }
     BO.state.saveSettings(settings);
   }
 
@@ -332,6 +340,32 @@
   function resolveSceneChoices(scene) {
     var choices = typeof scene.choices === "function" ? scene.choices(state) : scene.choices;
     return choices || [];
+  }
+
+  function buildSceneBridge(fromSceneId, nextSceneId, choice) {
+    var fromScene = BO.scenes.byId[fromSceneId];
+    var nextScene = BO.scenes.byId[nextSceneId];
+    var effects = choice && choice.effects ? choice.effects : {};
+    var destination;
+
+    if (!fromScene || !nextScene || fromSceneId === nextSceneId) {
+      return "";
+    }
+
+    destination = nextScene.location || nextScene.title;
+    if (effects.violence) {
+      return "The violence of your decision follows you out of " + fromScene.location + " and into " + destination + ".";
+    }
+    if (effects.fear) {
+      return "Fear keeps you moving as " + fromScene.location + " falls behind and " + destination + " draws near.";
+    }
+    if (effects.truth || effects.reality || effects.anomalies) {
+      return "What you have learned changes the road between " + fromScene.location + " and " + destination + ".";
+    }
+    if (effects.humanity || effects.trust || effects.relationships) {
+      return "You carry that small human choice with you from " + fromScene.location + " toward " + destination + ".";
+    }
+    return "The choice is made. " + fromScene.location + " recedes, and the road carries you toward " + destination + ".";
   }
 
   function recordChoice(sceneId, text) {
@@ -614,6 +648,9 @@
 
   function handleDeath() {
     combatSession = null;
+    if (BO.feedback) {
+      BO.feedback.signal("danger");
+    }
     state.deaths += 1;
     saveState();
     refreshHud();
@@ -658,11 +695,18 @@
       var button = document.createElement("button");
       var action = BO.combat.getAction(combatSession, entry.id);
       var blocked = false;
+
+      if (!action) {
+        return;
+      }
       button.type = "button";
       if (action.requiresItem && state.inventory.indexOf(action.requiresItem) === -1) {
         blocked = true;
       }
       if (action.requiresAmmo && state.ammo < action.requiresAmmo) {
+        blocked = true;
+      }
+      if (action.id === "item" && state.inventory.indexOf("Medical Kit") === -1) {
         blocked = true;
       }
       button.textContent = action.label + " — " + combatSession.enemy.name + " HP: " + combatSession.enemy.health;
@@ -675,6 +719,9 @@
   }
 
   function resolveCombatAction(action) {
+    if (BO.feedback) {
+      BO.feedback.signal("combat");
+    }
     var result = BO.combat.perform(action, state, combatSession);
     var nextSceneId;
     healthClamp();
@@ -687,8 +734,12 @@
     }
 
     if (result === "escaped") {
+      if (BO.feedback) {
+        BO.feedback.signal("success");
+      }
       applyEffects(combatSession.config.onEscape);
       nextSceneId = combatSession.config.runNext || state.currentScene;
+      pendingSceneBridge = buildSceneBridge(state.currentScene, nextSceneId, { effects: combatSession.config.onEscape || { fear: 1 } });
       state.lastSafeScene = nextSceneId;
       saveState();
       combatSession = null;
@@ -697,8 +748,12 @@
     }
 
     if (combatSession.enemy.health <= 0) {
+      if (BO.feedback) {
+        BO.feedback.signal("success");
+      }
       applyEffects(combatSession.config.onVictory);
       nextSceneId = combatSession.config.victoryNext || state.currentScene;
+      pendingSceneBridge = buildSceneBridge(state.currentScene, nextSceneId, { effects: combatSession.config.onVictory || { violence: 1 } });
       state.lastSafeScene = nextSceneId;
       combatSession = null;
       saveState();
@@ -718,9 +773,6 @@
   }
 
   function goToScene(nextSceneId, message) {
-    if (message) {
-      setEventText(message);
-    }
     if (nextSceneId === "ENDING") {
       renderEnding();
       return;
@@ -730,6 +782,9 @@
 
   function makeChoice(choice) {
     var resolvedChoice = resolveRandom(choice);
+    if (BO.feedback) {
+      BO.feedback.signal(resolvedChoice.combat ? "combat" : "choice");
+    }
     recordChoice(state.currentScene, resolvedChoice.text);
     applyEffects(resolvedChoice.effects);
 
@@ -754,6 +809,7 @@
     }
 
     saveState();
+    pendingSceneBridge = buildSceneBridge(state.currentScene, resolvedChoice.next, resolvedChoice);
     goToScene(resolvedChoice.next, resolvedChoice.resultText);
   }
 
@@ -858,6 +914,10 @@
     setEventText("");
 
     lines = resolveSceneText(scene);
+    if (pendingSceneBridge) {
+      lines = [pendingSceneBridge].concat(lines);
+      pendingSceneBridge = "";
+    }
     transition = resolveSceneTransition(scene);
     if (transition) {
       if (Array.isArray(transition)) {
@@ -995,7 +1055,9 @@
       settings = {
         textSpeed: refs.textSpeedSelect.value,
         reducedMotion: refs.reducedMotionToggle.checked,
-        skipAnimations: refs.skipAnimationsToggle.checked
+        skipAnimations: refs.skipAnimationsToggle.checked,
+        soundEnabled: refs.soundEnabledToggle.checked,
+        hapticsEnabled: refs.hapticsEnabledToggle.checked
       };
       applySettings();
       setEventText("Settings applied.");

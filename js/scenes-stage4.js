@@ -171,13 +171,62 @@
       title: "The Hallway",
       location: "Capital",
       transition: "When you escape, the hallway beyond contains every earlier location as a door and none of them lead back out.",
-      text: [
-        "The doors are labeled Home, Truck, Safe House, Forest, Village, Bedroom.",
-        "At the end of the hall is one final door labeled 6."
-      ],
+      text: function (state) {
+        var opened = [
+          state.flags.hallwayHomeOpened ? "Home" : "",
+          state.flags.hallwayTruckOpened ? "Truck" : "",
+          state.flags.hallwaySafeHouseOpened ? "Safe House" : "",
+          state.flags.hallwayForestOpened ? "Forest" : "",
+          state.flags.hallwayVillageOpened ? "Village" : "",
+          state.flags.hallwayBedroomOpened ? "Bedroom" : ""
+        ].filter(Boolean);
+        var lines = [
+          "The doors are labeled Home, Truck, Safe House, Forest, Village, Bedroom.",
+          "At the end of the hall is one final door labeled 6."
+        ];
+
+        if (opened.length) {
+          lines.push("You have opened: " + opened.join(", ") + ". None of them led out.");
+        }
+        return lines;
+      },
       choices: [
-        { text: "Open the door labeled Home.", effects: { fear: 1 }, next: "scene36" },
-        { text: "Open the door labeled Truck.", effects: { guilt: 1 }, next: "scene36" },
+        {
+          text: "Open the door labeled Home.",
+          condition: function (state) { return !state.flags.hallwayHomeOpened; },
+          effects: { fear: 1, truth: 1, flags: { hallwayHomeOpened: true } },
+          next: "scene36"
+        },
+        {
+          text: "Open the door labeled Truck.",
+          condition: function (state) { return !state.flags.hallwayTruckOpened; },
+          effects: { guilt: 1, flags: { hallwayTruckOpened: true } },
+          next: "scene36"
+        },
+        {
+          text: "Open the door labeled Safe House.",
+          condition: function (state) { return !state.flags.hallwaySafeHouseOpened; },
+          effects: { fear: 1, relationships: { petra: 1 }, flags: { hallwaySafeHouseOpened: true } },
+          next: "scene36"
+        },
+        {
+          text: "Open the door labeled Forest.",
+          condition: function (state) { return !state.flags.hallwayForestOpened; },
+          effects: { truth: 1, anomalies: 1, flags: { hallwayForestOpened: true } },
+          next: "scene36"
+        },
+        {
+          text: "Open the door labeled Village.",
+          condition: function (state) { return !state.flags.hallwayVillageOpened; },
+          effects: { humanity: 1, flags: { hallwayVillageOpened: true } },
+          next: "scene36"
+        },
+        {
+          text: "Open the door labeled Bedroom.",
+          condition: function (state) { return !state.flags.hallwayBedroomOpened; },
+          effects: { reality: 1, anomalies: 1, flags: { hallwayBedroomOpened: true } },
+          next: "scene36"
+        },
         { text: "Ignore them all and open Door 6.", effects: { truth: 2, reality: 1, anomalies: 1, flags: { door6Entered: true } }, next: "scene37" }
       ]
     }
