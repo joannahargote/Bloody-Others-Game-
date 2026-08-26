@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#090909">
+  <title>Bloody Others</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-shell" id="appShell">
+    <header class="brand-bar">
+      <div>
+        <p class="eyebrow">Psychological thriller / interactive fiction</p>
+        <h1>BLOODY OTHERS</h1>
+      </div>
+      <button id="menuButton" class="ghost-button hidden" type="button">Menu</button>
+    </header>
+
+    <main class="mobile-frame" id="mobileFrame">
+      <section class="screen active" id="menuScreen" aria-labelledby="menuTitle">
+        <div class="panel hero-panel menu-poster">
+          <div class="poster-art" aria-hidden="true">
+            <div class="poster-beam"></div>
+            <div class="poster-haze"></div>
+            <div class="poster-city"></div>
+            <div class="poster-tower">
+              <span></span>
+              <span></span>
+            </div>
+            <div class="poster-sign">DO NOT TRUST THE OTHERS</div>
+            <div class="poster-figure"></div>
+            <div class="poster-screens">
+              <div class="poster-screen poster-screen-crowd"></div>
+              <div class="poster-screen poster-screen-hand"></div>
+              <div class="poster-screen poster-screen-eye"></div>
+              <div class="poster-screen poster-screen-static"></div>
+            </div>
+            <div class="poster-book">
+              <span class="poster-book-title">THE<br>SOCIETY<br>OF OTHERS</span>
+            </div>
+            <div class="poster-photo"></div>
+          </div>
+
+          <div class="menu-overlay">
+            <p class="panel-kicker sr-only">The player has choices, but the story has a destination.</p>
+            <h2 id="menuTitle" class="sr-only">Main Menu</h2>
+            <p class="menu-tagline sr-only">A psychological thriller told through converging choices, hidden truths, and violent echoes.</p>
+            <div class="menu-mobile-title" aria-hidden="true">
+              <p class="menu-mobile-overline">Psychological thriller / interactive fiction</p>
+              <p class="menu-mobile-heading">BLOODY OTHERS</p>
+            </div>
+            <div class="menu-buttons poster-buttons">
+              <button id="continueButton" type="button">Continue</button>
+              <button id="newGameButton" type="button">New Game</button>
+              <button id="loadButton" type="button">Load Game</button>
+              <button id="endingsButton" type="button">Endings</button>
+              <button id="settingsButton" type="button">Settings</button>
+            </div>
+            <p id="menuHint" class="menu-hint" aria-live="polite"></p>
+            <div class="menu-footer">
+              <p id="menuFooterLeft" class="menu-footer-left">A JoCanArg Game • v0.4 • 2026-08-26</p>
+              <p id="menuFooterRight" class="menu-footer-right">Made for A. • 17</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen" id="gameScreen" aria-labelledby="sceneTitle">
+        <div class="panel game-panel">
+          <div class="status-strip">
+            <div>
+              <p class="status-label">Location</p>
+              <p id="sceneLocation" class="status-value">Home</p>
+            </div>
+            <div class="hp-box">
+              <span class="status-label">HP</span>
+              <span id="healthValue" class="status-value">100</span>
+            </div>
+          </div>
+
+          <div class="hud-grid">
+            <div class="hud-card">
+              <span id="petraLabel" class="status-label">[REDACTED]</span>
+              <span id="petraStatus" class="status-value">Unknown</span>
+            </div>
+            <div class="hud-card">
+              <span class="status-label">Deaths</span>
+              <span id="deathCount" class="status-value">0</span>
+            </div>
+            <div class="hud-card">
+              <span class="status-label">Ammo</span>
+              <span id="ammoValue" class="status-value">0</span>
+            </div>
+            <div class="hud-card">
+              <span class="status-label">Condition</span>
+              <span id="injuryValue" class="status-value">Steady</span>
+            </div>
+          </div>
+
+          <div id="sceneArt" class="scene-art hidden" aria-hidden="true"></div>
+          <h2 id="sceneTitle">The Room</h2>
+          <div id="sceneText" class="scene-text" aria-live="polite"></div>
+          <div id="eventText" class="event-text" aria-live="polite"></div>
+          <div id="choiceList" class="choice-list" role="group" aria-label="Choices"></div>
+
+          <aside class="meta-panel">
+            <div>
+              <h3>Inventory</h3>
+              <ul id="inventoryList" class="token-list"></ul>
+            </div>
+            <div>
+              <h3>Clues</h3>
+              <ul id="clueList" class="token-list"></ul>
+            </div>
+          </aside>
+
+          <div class="footer-actions">
+            <button id="saveButton" type="button" class="ghost-button">Save Game</button>
+            <button id="restartButton" type="button" class="ghost-button">Restart</button>
+            <button id="openSettingsButton" type="button" class="ghost-button">Settings</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="settingsDialog" class="overlay-dialog">
+    <form method="dialog" class="panel overlay-panel">
+      <div class="overlay-header">
+        <h2>Settings</h2>
+        <button type="submit" class="ghost-button">Close</button>
+      </div>
+
+      <label class="setting-row">
+        <span>Text speed</span>
+        <select id="textSpeedSelect">
+          <option value="fast">Fast</option>
+          <option value="normal">Normal</option>
+          <option value="slow">Slow</option>
+        </select>
+      </label>
+
+      <label class="setting-row checkbox-row">
+        <input id="reducedMotionToggle" type="checkbox">
+        <span>Reduced motion</span>
+      </label>
+
+      <label class="setting-row checkbox-row">
+        <input id="skipAnimationsToggle" type="checkbox">
+        <span>Skip scene animation</span>
+      </label>
+
+      <div class="menu-buttons">
+        <button id="applySettingsButton" type="button">Apply</button>
+        <button id="resetSaveButton" type="button" class="danger-button">Reset Save Data</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="deathDialog" class="overlay-dialog">
+    <div class="panel overlay-panel">
+      <h2>YOU DIED</h2>
+      <p id="deathCauseText" class="death-cause">Cause: The road ended here.</p>
+      <p>Your choices brought you here.</p>
+      <div class="menu-buttons">
+        <button id="restartSceneButton" type="button">Restart Scene</button>
+        <button id="restartStoryButton" type="button">Restart Story</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="endingsDialog" class="overlay-dialog">
+    <div class="panel overlay-panel endings-panel">
+      <div class="overlay-header">
+        <div>
+          <h2>Endings</h2>
+          <p id="endingsProgressText" class="overlay-subtext">0 of 7 unlocked</p>
+        </div>
+        <button id="closeEndingsButton" type="button" class="ghost-button">Close</button>
+      </div>
+      <div class="endings-layout">
+        <div id="endingsList" class="endings-list" role="list" aria-label="Ending list"></div>
+        <div class="endings-preview">
+          <p id="endingPreviewStatus" class="panel-kicker">Select an ending.</p>
+          <h3 id="endingPreviewTitle">The road splits seven ways.</h3>
+          <div id="endingPreviewText" class="ending-preview-text">
+            <p>Unlocked endings appear here so players can revisit their final message.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <aside id="debugPanel" class="debug-panel hidden" aria-label="Debug tools">
+    <h2>Debug Mode</h2>
+    <div class="debug-grid">
+      <button data-debug-stat="humanity" type="button">+ Humanity</button>
+      <button data-debug-stat="fear" type="button">+ Fear</button>
+      <button data-debug-stat="violence" type="button">+ Violence</button>
+      <button data-debug-stat="truth" type="button">+ Truth</button>
+      <button data-debug-stat="guilt" type="button">+ Guilt</button>
+      <button data-debug-stat="reality" type="button">+ Reality</button>
+      <button id="debugItemsButton" type="button">Give All Items</button>
+      <button id="debugScenesButton" type="button">Unlock All Scenes</button>
+      <button id="debugCombatButton" type="button">Trigger Combat</button>
+      <button id="debugEndingButton" type="button">Trigger Ending</button>
+      <button id="debugResetButton" type="button">Reset State</button>
+    </div>
+  </aside>
+
+  <script src="js/state.js"></script>
+  <script src="js/random.js"></script>
+  <script src="js/combat.js"></script>
+  <script src="js/endings.js"></script>
+  <script src="js/scenes-stage1.js"></script>
+  <script src="js/scenes-stage2.js"></script>
+  <script src="js/scenes-stage3.js"></script>
+  <script src="js/scenes-stage4.js"></script>
+  <script src="js/scenes-stage5.js"></script>
+  <script src="js/scenes.js"></script>
+  <script src="js/scene-atlas.js"></script>
+  <script src="js/secret-ending.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>
